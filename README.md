@@ -47,6 +47,7 @@ Casting and validating example:
 const product = {
   name: 'Shirt',
   quantity: 1,
+  blah: 'blah',
 };
 
 const result = validcast(product, {
@@ -60,5 +61,7 @@ const result = validcast(product, {
   ...noAdditonalProps
 });
 
-// result = InvalidType error object. path price.amount is not a number.
+// result = InvalidType error object, path ['price', 'amount']
+
+// once you fix that, the next error will be, InvalidType error object, path ['blah'].
 ```
