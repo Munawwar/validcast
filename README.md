@@ -5,7 +5,7 @@ Casting example:
 ```js
 const {
   validcast,
-  noAdditonalProps,
+  noAdditionalProps,
   validatorCreators: { fallback },
   cast: {
     toFiniteNumber,
@@ -26,7 +26,7 @@ const result = validcast(product, {
     amount: toFiniteNumber(0),
     currency: fallback('string', 'USD'),
   }),
-  ...noAdditonalProps
+  ...noAdditionalProps
 });
 
 console.log(JSON.stringify(result, 0, 2));
@@ -58,7 +58,7 @@ const result = validcast(product, {
     amount: 'number,
     currency: fallback('string', 'USD'),
   }),
-  ...noAdditonalProps
+  ...noAdditionalProps
 });
 
 // result = InvalidType error object, path ['price', 'amount']

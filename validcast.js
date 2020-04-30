@@ -35,8 +35,8 @@ class InvalidSchema extends Error {
     };
   }
 }
-const noAdditonalPropsSymbol = Symbol('noAdditonalProps');
-const noAdditonalProps = { [noAdditonalPropsSymbol]: true };
+const noAdditionalPropsSymbol = Symbol('noAdditionalProps');
+const noAdditionalProps = { [noAdditionalPropsSymbol]: true };
 
 const isString = (val, path) => (typeof val === 'string' ? val : new InvalidType('InvalidType', { path }));
 const isNumber = (val, path) => ((typeof val === 'number' && !Number.isNaN(val)) ? val : new InvalidType('InvalidType', { path }));
@@ -92,7 +92,7 @@ function validcast(obj, schema, path = [], parents = []) {
         if (schema[key] === undefined && schema[`${key}?`] === undefined) {
           return [
             key,
-            schema[noAdditonalPropsSymbol] ? new InvalidType('InvalidType', { path: [...path, key] }) : val,
+            schema[noAdditionalPropsSymbol] ? new InvalidType('InvalidType', { path: [...path, key] }) : val,
           ];
         }
         // optional prop check
@@ -287,7 +287,7 @@ module.exports = {
   validcast,
   InvalidType,
   InvalidSchema,
-  noAdditonalProps,
+  noAdditionalProps,
   validators: {
     isString,
     isNumber,
