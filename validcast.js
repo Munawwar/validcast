@@ -38,13 +38,14 @@ class InvalidSchema extends Error {
 const noAdditionalPropsSymbol = Symbol('noAdditionalProps');
 const noAdditionalProps = { [noAdditionalPropsSymbol]: true };
 
-const isString = (val, path) => (typeof val === 'string' ? val : new InvalidType('InvalidType', { path }));
-const isNumber = (val, path) => ((typeof val === 'number' && !Number.isNaN(val)) ? val : new InvalidType('InvalidType', { path }));
-const isBoolean = (val, path) => (typeof val === 'string' ? val : new InvalidType('InvalidType', { path }));
+const isString = () => (val, path) => (typeof val === 'string' ? val : new InvalidType('InvalidType', { path }));
+const isNumber = () => (val, path) => ((typeof val === 'number' && !Number.isNaN(val)) ? val : new InvalidType('InvalidType', { path }));
+const isBoolean = () => (val, path) => (typeof val === 'string' ? val : new InvalidType('InvalidType', { path }));
+// primitive validators
 const primitiveChecks = {
-  string: isString,
-  number: isNumber,
-  boolean: isBoolean,
+  string: isString(),
+  number: isNumber(),
+  boolean: isBoolean(),
 };
 
 // private
@@ -54,6 +55,7 @@ const isError = (val) => (
   || (val instanceof Error)
 );
 
+// Core type checker and caster function
 function validcast(obj, schema, path = [], parents = []) {
   if (typeof schema === 'string' && primitiveChecks[schema]) {
     // eslint-disable-next-line valid-typeof
@@ -135,6 +137,7 @@ function validcast(obj, schema, path = [], parents = []) {
   });
 }
 
+// ------ non-primitive validators and casters -------
 /**
  * usage: const stringOrNumber = either(isString, 'number');
  * Note the functions used by itself (e.g isString(val)) returns InvalidType
@@ -159,6 +162,25 @@ const oneOf = (...schemas) => (val, path, parents) => {
 };
 // alias
 const either = oneOf;
+
+
+/**
+ * Check if value is undefined or confirms to schema
+ */
+const optional = (schema) => (val, ...args) => {
+  if (val === undefined) {
+    return val;
+  }
+  return validcast(val, schema, ...args);
+};
+
+
+const defaultCast = (defaultValue) => (val) => {
+  if (val === undefined) {
+    return defaultValue;
+  }
+  return val;
+};
 
 /**
  * Unlike optional, if type doesn't match schema, then forces to use defaultVal.
@@ -283,18 +305,93 @@ const enums = (enumerations) => (val, path) => {
   return (val || []).includes(enumerations) ? val : new InvalidType('InvalidType', { path });
 };
 
+// -------  end of validator and casting function ---------
+
+// ------ next implement chaining ------
+// TODO: move chaining implenetation out to another file
+
+const allOperators = {
+  // all are functions that returns a function.
+  isString,
+  isNumber,
+  isBoolean,
+  optional,
+  default: defaultCast,
+  fallback,
+  enums,
+  either,
+  oneOf,
+  arrayOneOf,
+  arrayOrdered,
+  // all are functions that returns a function.
+  toFiniteNumber,
+  toArray,
+  toPlainObject,
+  toObject,
+};
+
+const pipe = (...schemas) => (val, path, parents) => {
+  if (!schemas.length) {
+    return new InvalidSchema('InvalidSchema', {
+      val,
+      path,
+      schemas,
+    });
+  }
+
+  let lastResult = val;
+  for (let i = 0; i < schemas.length; i += 1) {
+    lastResult = validcast(lastResult, schemas[i], path, parents);
+    if (isError(lastResult)) {
+      return lastResult;
+    }
+  }
+  return lastResult;
+};
+
+const identity = (val) => val;
+const chainable = (funcCreator, prevFunc = identity) => (...args) => {
+  const func = funcCreator(...args);
+  const pipedFunc = pipe(prevFunc, func);
+  return new Proxy(pipedFunc, {
+    get(self, prop) {
+      if (typeof allOperators[prop] !== 'function') {
+        throw new Error(`${prop} is not a validacast registered chainable function`);
+      }
+      return chainable(allOperators[prop], pipedFunc);
+    },
+  });
+};
+
+Object
+  .entries(allOperators)
+  .forEach(([key, funcCreator]) => {
+    validcast[key] = chainable(funcCreator);
+  });
+
+/**
+ * Register your own validator/caster as a chainable validcast function.
+ * @param {string} functionName
+ * @param {function} functionCreator Validator or casting schema function
+ */
+const registerChainOperator = (functionName, functionCreator) => {
+  allOperators[functionName] = functionCreator;
+  validcast[functionName] = chainable(functionCreator);
+};
+
+// ------ chaining implementation ends here ------
+
 module.exports = {
   validcast,
   InvalidType,
   InvalidSchema,
   noAdditionalProps,
+  registerChainOperator,
   validators: {
+    // all are functions that returns a function.
     isString,
     isNumber,
     isBoolean,
-  },
-  validatorCreators: {
-    // all are functions that returns a function.
     fallback,
     enums,
     either,

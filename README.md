@@ -6,7 +6,7 @@ Casting example:
 const {
   validcast,
   noAdditionalProps,
-  validatorCreators: { fallback },
+  validators: { fallback },
   cast: {
     toFiniteNumber,
     toObject,

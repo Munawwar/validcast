@@ -2,7 +2,7 @@ const moment = require('moment');
 const {
   validcast,
   InvalidType,
-  validatorCreators: {
+  validators: {
     fallback,
     enums,
   },
@@ -11,7 +11,7 @@ const {
     toArray,
     toObject,
   },
-} = require('./validcast');
+} = require('../validcast');
 
 // test
 const testObj = {
